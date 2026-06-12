@@ -1,7 +1,7 @@
-com\smartlibrary\service\ScheduledTaskServiceTest.class
-com\smartlibrary\service\ScheduledTaskServiceTest$TestScheduledFuture.class
 com\smartlibrary\service\BookServiceTest.class
+com\smartlibrary\scheduling\BookOverdueSchedulerTest.class
 com\smartlibrary\service\BorrowServiceTest.class
 com\smartlibrary\service\CategoryServiceTest.class
+com\smartlibrary\scheduling\BookOverdueSchedulerTest$TestScheduledFuture.class
 com\smartlibrary\service\AuthenticationServiceTest.class
 com\smartlibrary\service\UserServiceTest.class

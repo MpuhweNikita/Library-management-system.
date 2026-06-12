@@ -1,7 +1,8 @@
-package com.smartlibrary.service;
+package com.smartlibrary.scheduling;
 
 import com.smartlibrary.entity.SystemSetting;
 import com.smartlibrary.repository.SystemSettingRepository;
+import com.smartlibrary.service.BorrowService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class ScheduledTaskServiceTest {
+public class BookOverdueSchedulerTest {
 
     @Mock
     private TaskScheduler taskScheduler;
@@ -34,7 +35,7 @@ public class ScheduledTaskServiceTest {
     @Mock
     private SystemSettingRepository settingRepository;
 
-    private ScheduledTaskService scheduledTaskService;
+    private BookOverdueScheduler bookOverdueScheduler;
     private TestScheduledFuture testFuture;
 
     // Custom non-mocked implementation of ScheduledFuture to avoid Mockito ByteBuddy Java 24 compatibility limitations with JDK classes
@@ -82,7 +83,7 @@ public class ScheduledTaskServiceTest {
 
     @BeforeEach
     void setUp() {
-        scheduledTaskService = new ScheduledTaskService(taskScheduler, borrowService, settingRepository);
+        bookOverdueScheduler = new BookOverdueScheduler(taskScheduler, borrowService, settingRepository);
         testFuture = new TestScheduledFuture();
     }
 
@@ -93,7 +94,7 @@ public class ScheduledTaskServiceTest {
         
         doReturn(testFuture).when(taskScheduler).schedule(any(Runnable.class), any(Trigger.class));
 
-        scheduledTaskService.reschedule();
+        bookOverdueScheduler.reschedule();
 
         ArgumentCaptor<Trigger> triggerCaptor = ArgumentCaptor.forClass(Trigger.class);
         verify(taskScheduler, times(1)).schedule(any(Runnable.class), triggerCaptor.capture());
@@ -110,7 +111,7 @@ public class ScheduledTaskServiceTest {
         
         doReturn(testFuture).when(taskScheduler).schedule(any(Runnable.class), any(Trigger.class));
 
-        scheduledTaskService.reschedule();
+        bookOverdueScheduler.reschedule();
 
         ArgumentCaptor<Trigger> triggerCaptor = ArgumentCaptor.forClass(Trigger.class);
         verify(taskScheduler, times(1)).schedule(any(Runnable.class), triggerCaptor.capture());
@@ -127,11 +128,11 @@ public class ScheduledTaskServiceTest {
         doReturn(testFuture).when(taskScheduler).schedule(any(Runnable.class), any(Trigger.class));
 
         // First execution schedules the task
-        scheduledTaskService.reschedule();
+        bookOverdueScheduler.reschedule();
         assertFalse(testFuture.cancelCalled);
 
         // Second execution should cancel the existing task
-        scheduledTaskService.reschedule();
+        bookOverdueScheduler.reschedule();
         assertTrue(testFuture.cancelCalled);
         assertFalse(testFuture.mayInterrupt);
     }
@@ -141,7 +142,7 @@ public class ScheduledTaskServiceTest {
         SystemSetting cronSetting = new SystemSetting(1L, "overdue_check_cron", "0 0 0 * * ?");
         when(settingRepository.findByKey("overdue_check_cron")).thenReturn(Optional.of(cronSetting));
 
-        Date nextRun = scheduledTaskService.getNextExecutionTime();
+        Date nextRun = bookOverdueScheduler.getNextExecutionTime();
 
         assertNotNull(nextRun);
         assertTrue(nextRun.after(new Date()));
@@ -149,7 +150,7 @@ public class ScheduledTaskServiceTest {
 
     @Test
     void runOverdueCheck_Success() {
-        scheduledTaskService.runOverdueCheck();
+        bookOverdueScheduler.runOverdueCheck();
         verify(borrowService, times(1)).checkAndUpdateOverdueBorrows();
     }
 }

@@ -1,31 +1,43 @@
-package com.smartlibrary.service;
+package com.smartlibrary.scheduling;
 
 import com.smartlibrary.entity.SystemSetting;
 import com.smartlibrary.repository.SystemSettingRepository;
+import com.smartlibrary.service.BorrowService;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.scheduling.support.CronExpression;
-import org.springframework.stereotype.Service;
+import org.springframework.scheduling.support.CronTrigger;
+import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.concurrent.ScheduledFuture;
 
-@Service
-public class ScheduledTaskService {
+/**
+ * Dynamic Scheduler class managing background execution of book overdue checks.
+ * 
+ * <p><strong>Cron Scheduling Implementation:</strong></p>
+ * This class schedules checking and flagging overdue loans using Spring's {@link TaskScheduler}
+ * and a {@link CronTrigger} loaded dynamically from the PostgreSQL database (setting key: "overdue_check_cron").
+ * The default cron is set to run daily at midnight: {@code 0 0 0 * * ?}.
+ * 
+ * <p>Rescheduling occurs automatically without restarting the server whenever an administrator
+ * updates the cron setting via the System Settings interface.</p>
+ */
+@Component
+public class BookOverdueScheduler {
 
-    private static final Logger logger = LoggerFactory.getLogger(ScheduledTaskService.class);
+    private static final Logger logger = LoggerFactory.getLogger(BookOverdueScheduler.class);
 
     private final TaskScheduler taskScheduler;
     private final BorrowService borrowService;
     private final SystemSettingRepository settingRepository;
     private ScheduledFuture<?> scheduledFuture;
 
-    public ScheduledTaskService(
+    public BookOverdueScheduler(
             TaskScheduler taskScheduler,
             BorrowService borrowService,
             SystemSettingRepository settingRepository
@@ -41,8 +53,8 @@ public class ScheduledTaskService {
     }
 
     /**
-     * Reschedules the task using the cron expression from the system settings.
-     * Cancels any previously scheduled task to ensure only one instances runs.
+     * Dynamically schedules or reschedules the overdue checking background task
+     * using the cron expression stored in system settings.
      */
     public synchronized void reschedule() {
         if (scheduledFuture != null) {
@@ -54,7 +66,7 @@ public class ScheduledTaskService {
                 .map(SystemSetting::getValue)
                 .orElse("0 0 0 * * ?");
 
-        // Validate cron expression, fallback if invalid
+        // Validate cron expression, fallback to daily at midnight if invalid
         try {
             CronExpression.parse(cron);
         } catch (IllegalArgumentException e) {
@@ -70,7 +82,7 @@ public class ScheduledTaskService {
     }
 
     /**
-     * Executes the overdue check task.
+     * Executes the main overdue check transaction logic.
      */
     public void runOverdueCheck() {
         logger.info("Executing dynamic scheduled task: Checking and updating overdue borrow records.");
@@ -83,7 +95,9 @@ public class ScheduledTaskService {
     }
 
     /**
-     * Computes the next scheduled execution time based on the active cron string.
+     * Calculates the next execution time for the cron scheduler.
+     * 
+     * @return Date representing the next execution trigger
      */
     public Date getNextExecutionTime() {
         String cron = settingRepository.findByKey("overdue_check_cron")

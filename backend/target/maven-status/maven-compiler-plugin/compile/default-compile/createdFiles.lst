@@ -27,6 +27,7 @@ com\smartlibrary\service\CategoryService.class
 com\smartlibrary\service\SystemSettingService.class
 com\smartlibrary\dto\BorrowDto.class
 com\smartlibrary\exception\GlobalExceptionHandler.class
+com\smartlibrary\scheduling\BookOverdueScheduler.class
 com\smartlibrary\service\impl\CategoryServiceImpl.class
 com\smartlibrary\service\UserService.class
 com\smartlibrary\dto\DashboardStatsDto$DashboardStatsDtoBuilder.class
@@ -54,7 +55,6 @@ com\smartlibrary\controller\BookController.class
 com\smartlibrary\controller\CategoryController.class
 com\smartlibrary\entity\User$UserBuilder.class
 com\smartlibrary\controller\UserController.class
-com\smartlibrary\service\ScheduledTaskService.class
 com\smartlibrary\repository\SystemSettingRepository.class
 com\smartlibrary\service\impl\SystemSettingServiceImpl.class
 com\smartlibrary\dto\ApiResponse.class

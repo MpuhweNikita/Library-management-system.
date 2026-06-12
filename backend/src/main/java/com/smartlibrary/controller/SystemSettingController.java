@@ -1,7 +1,7 @@
 package com.smartlibrary.controller;
 
 import com.smartlibrary.dto.ApiResponse;
-import com.smartlibrary.service.ScheduledTaskService;
+import com.smartlibrary.scheduling.BookOverdueScheduler;
 import com.smartlibrary.service.SystemSettingService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.support.CronExpression;
@@ -16,14 +16,14 @@ import java.util.concurrent.CompletableFuture;
 public class SystemSettingController {
 
     private final SystemSettingService settingService;
-    private final ScheduledTaskService scheduledTaskService;
+    private final BookOverdueScheduler bookOverdueScheduler;
 
     public SystemSettingController(
             SystemSettingService settingService,
-            ScheduledTaskService scheduledTaskService
+            BookOverdueScheduler bookOverdueScheduler
     ) {
         this.settingService = settingService;
-        this.scheduledTaskService = scheduledTaskService;
+        this.bookOverdueScheduler = bookOverdueScheduler;
     }
 
     @GetMapping("/scheduler")
@@ -31,7 +31,7 @@ public class SystemSettingController {
         String cron = settingService.getSettingValue("overdue_check_cron", "0 0 0 * * ?");
         Map<String, Object> data = new HashMap<>();
         data.put("cron", cron);
-        data.put("nextExecution", scheduledTaskService.getNextExecutionTime());
+        data.put("nextExecution", bookOverdueScheduler.getNextExecutionTime());
         data.put("status", "Active");
         return ResponseEntity.ok(ApiResponse.success("Scheduler settings retrieved successfully", data));
     }
@@ -50,11 +50,11 @@ public class SystemSettingController {
 
         // Save to database and reschedule task
         settingService.saveOrUpdateSetting("overdue_check_cron", cron);
-        scheduledTaskService.reschedule();
+        bookOverdueScheduler.reschedule();
 
         Map<String, Object> data = new HashMap<>();
         data.put("cron", cron);
-        data.put("nextExecution", scheduledTaskService.getNextExecutionTime());
+        data.put("nextExecution", bookOverdueScheduler.getNextExecutionTime());
         data.put("status", "Active");
 
         return ResponseEntity.ok(ApiResponse.success("Scheduler settings updated and task rescheduled successfully", data));
@@ -63,7 +63,7 @@ public class SystemSettingController {
     @PostMapping("/scheduler/run")
     public ResponseEntity<ApiResponse<Void>> triggerSchedulerImmediately() {
         // Run check asynchronously so we return a response to the UI immediately
-        CompletableFuture.runAsync(scheduledTaskService::runOverdueCheck);
+        CompletableFuture.runAsync(bookOverdueScheduler::runOverdueCheck);
         return ResponseEntity.ok(ApiResponse.success("Overdue borrow check task triggered and running in the background"));
     }
 }
